@@ -8,8 +8,6 @@ using ProductsService.Configuration;
 using ProductsService.Data;
 using ProductsService.Data.Entities;
 
-const string ServiceName = "ProductsService";
-
 var builder = WebApplication.CreateBuilder(args);
 
 var cfg = new ProductsServiceConfiguration();
@@ -34,7 +32,9 @@ builder.Logging.AddConsole(options =>
 //traces
 builder.Services.AddOpenTelemetryTracing(options =>
 {
-    options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(ServiceName))
+    options
+        .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(Constants.ServiceName))
+        .AddSource(Constants.ServiceName)
         .AddEntityFrameworkCoreInstrumentation(opt =>
         {
             opt.SetDbStatementForText = true;
@@ -53,7 +53,7 @@ builder.Services.AddOpenTelemetryMetrics(options =>
 {
     options.ConfigureResource(rb =>
         {
-            rb.AddService(ServiceName);
+            rb.AddService(Constants.ServiceName);
         })
         .AddRuntimeInstrumentation()
         .AddHttpClientInstrumentation()
