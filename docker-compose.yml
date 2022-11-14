@@ -17,6 +17,11 @@ services:
     volumes:
       - ./docker-compose-configs/grafana/datasources:/etc/grafana/provisioning/datasources
       - ./docker-compose-configs/grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      GF_AUTH_DISABLE_LOGIN_FORM: true
+      GF_AUTH_ANONYMOUS_ENABLED: true
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_SECURITY_ALLOW_EMBEDDING: true
     networks:
       - cloud-native
   prometheus:
@@ -28,29 +33,6 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
     volumes:
       - ./docker-compose-configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    depends_on:
-      - cadvisor
-    networks:
-      - cloud-native
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
-    container_name: cadvisor
-    ports:
-      - "8080:8080"
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:rw
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-    depends_on:
-      - redis
-    networks:
-      - cloud-native
-  redis:
-    image: redis:latest
-    container_name: redis
-    ports:
-      - "6379:6379"
     networks:
       - cloud-native
   zipkin:
@@ -58,22 +40,6 @@ services:
     container_name: zipkin
     ports:
       - "9411:9411"
-    networks:
-      - cloud-native
-  # jaeger:
-  #   image: jaegertracing/all-in-one:1.22
-  #   container_name: jaeger    
-  #   environment:
-  #     COLLECTOR_ZIPKIN_HOST_PORT: 9412
-  #   ports:
-  #     - "16686:16686"
-  #   networks:
-  #     - cloud-native
-  rabbit:
-    image: rabbitmq:management-alpine
-    container_name: rabbitmq
-    ports:
-      - "15672:15672"
     networks:
       - cloud-native
   gateway:
@@ -85,191 +51,24 @@ services:
         loki-url: http://10.5.0.99:3100/loki/api/v1/push
         loki-retries: 5
     environment:
-      ASPNETCORE_ENVIRONMENT: DockerCompose
+      ReverseProxy__Clusters__products__Destinations__products/destination1__Address: http://products:5000
       Gateway__ZipkinEndpoint: http://zipkin:9411/api/v2/spans
-      DAPR_HTTP_PORT: 9000
     networks:
       - cloud-native
     depends_on:
       - zipkin
     ports: 
       - "5000:5000"
-  gateway-dapr:
-    image: "daprio/daprd:edge"
-    container_name: gateway-dapr
-    command: [ "./daprd",
-               "-app-id", "gateway",
-               "-app-port", "5000",
-               "-dapr-http-port", "9000",
-               "-dapr-grpc-port", "10000",
-               "-components-path", "/dapr/components",
-               "-config", "/dapr/config/config.yml" ]
-    network_mode: "service:gateway"
-    volumes:
-      - ./docker-compose-configs/dapr:/dapr/config
-      - ./src/dapr/components:/dapr/components
-    depends_on:
-      - gateway
-  orders:
-    build: ./src/OrdersService
-    container_name: orders
-    networks:
-      - cloud-native
-    depends_on:
-      - zipkin
-      - rabbit
-    environment:
-      DAPR_GRPC_PORT: 10002
-      OrdersService__IdentityServer__Authority: http://localhost:5009
-      OrdersService__IdentityServer__RequireHttpsMetadata: false
-      OrdersService__IdentityServer__MetadataAddress: http://authn:5000/.well-known/openid-configuration
-      OrdersService__ZipkinEndpoint: http://zipkin:9411/api/v2/spans
-    logging:
-      driver: loki
-      options:
-        loki-url: http://10.5.0.99:3100/loki/api/v1/push
-        loki-retries: 5
-  orders-dapr:
-    image: "daprio/daprd:edge"
-    container_name: orders-dapr
-    command: [ "./daprd",
-               "-app-id", "orders",
-               "-app-port", "5000",
-               "-dapr-http-port", "9002",
-               "-dapr-grpc-port", "10002",
-               "-components-path", "/dapr/components",
-               "-config", "/dapr/config/config.yml" ]
-    network_mode: "service:orders"
-    volumes:
-      - ./docker-compose-configs/dapr:/dapr/config
-      - ./src/dapr/components:/dapr/components
-    depends_on:
-      - orders
   products:
     build: ./src/ProductsService
     container_name: products
     environment:
-      DAPR_GRPC_PORT: 10001
       ProductsService__ZipkinEndpoint: http://zipkin:9411/api/v2/spans
+      Logging__LogLevel__Microsoft.AspNetCore: Information
     networks:
       - cloud-native
     depends_on:
       - zipkin
-    logging:
-      driver: loki
-      options:
-        loki-url: http://10.5.0.99:3100/loki/api/v1/push
-        loki-retries: 5
-  products-dapr:
-    image: "daprio/daprd:edge"
-    container_name: products-dapr
-    command: [ "./daprd",
-               "-app-id", "products",
-               "-app-port", "5000",
-               "-dapr-http-port", "9001",
-               "-dapr-grpc-port", "10001",
-               "-components-path", "/dapr/components",
-               "-config", "/dapr/config/config.yml" ]
-    network_mode: "service:products"
-    volumes:
-      - ./docker-compose-configs/dapr:/dapr/config
-      - ./src/dapr/components:/dapr/components
-    depends_on:
-      - products
-  notification:
-    build: ./src/NotificationService
-    container_name: notification
-    environment:
-      DAPR_GRPC_PORT: 10004
-      NotificationService__IdentityServer__Authority: http://localhost:5009
-      NotificationService__IdentityServer__RequireHttpsMetadata: false
-      NotificationService__IdentityServer__MetadataAddress: http://authn:5000/.well-known/openid-configuration
-      NotificationService__ZipkinEndpoint: http://zipkin:9411/api/v2/spans
-    networks:
-      - cloud-native
-    depends_on:
-      - zipkin
-      - rabbit
-    logging:
-      driver: loki
-      options:
-        loki-url: http://10.5.0.99:3100/loki/api/v1/push
-        loki-retries: 5
-  notification-dapr:
-    image: "daprio/daprd:edge"
-    container_name: notification-dapr
-    command: [ "./daprd",
-               "-app-id", "notification",
-               "-app-port", "5000",
-               "-dapr-http-port", "9004",
-               "-dapr-grpc-port", "10004",
-               "-components-path", "/dapr/components",
-               "-config", "/dapr/config/config.yml" ]
-    network_mode: "service:notification"
-    volumes:
-      - ./docker-compose-configs/dapr:/dapr/config
-      - ./src/dapr/components:/dapr/components
-    depends_on:
-      - notification
-  shipping:
-    build: ./src/ShippingService
-    container_name: shipping
-    environment:
-      DAPR_GRPC_PORT: 10003
-      ShippingService__Environment: Development
-      ShippingService__ZipkinEndpoint: http://zipkin:9411/api/v2/spans
-    networks:
-      - cloud-native
-    depends_on:
-      - zipkin
-      - rabbit
-    logging:
-      driver: loki
-      options:
-        loki-url: http://10.5.0.99:3100/loki/api/v1/push
-        loki-retries: 5
-  shipping-dapr:
-    image: "daprio/daprd:edge"
-    container_name: shipping-dapr
-    command: [ "./daprd",
-               "-app-id", "shipping",
-               "-app-port", "5000",
-               "-dapr-http-port", "9003",
-               "-dapr-grpc-port", "10003",
-               "-components-path", "/dapr/components",
-               "-config", "/dapr/config/config.yml" ]
-    network_mode: "service:shipping"
-    volumes:
-      - ./docker-compose-configs/dapr:/dapr/config
-      - ./src/dapr/components:/dapr/components
-    depends_on:
-      - shipping
-  ordermonitor:
-    build: 
-      context: ./src/OrderMonitorClient
-      args:
-        - TARGET=docker-compose
-
-    container_name: order-monitor-client
-    environment:
-      - IdentityServer__Uri=http://localhost:5009/
-    ports:
-      - "5005:8080"
-    networks:
-      - cloud-native
-  authentication:
-    build: ./src/AuthenticationService
-    container_name: authn
-    environment:
-      IdentityServer__AllowHttp: true
-      #IdentityServer__InteractiveClient__RedirectUris__0: http://localhost:5005/callback.html
-      #IdentityServer__InteractiveClient__FrontChannelLogoutUri: http://localhost:5005/signout-oidc
-      #IdentityServer__InteractiveClient__PostLogoutRedirectUris__0: http://localhost:5005/signout-callback-oidc
-      #IdentityServer__InteractiveClient__AllowedCorsOrigins__0: http://localhost:5005
-    ports:
-      - "5009:5000"
-    networks:
-      - cloud-native
     logging:
       driver: loki
       options:
@@ -283,6 +82,3 @@ networks:
       config:
         - subnet: 10.5.0.0/16
           gateway: 10.5.0.1
-          
-
-  

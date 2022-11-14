@@ -1,7 +1,6 @@
 ﻿using System.IO.Compression;
 using Gateway;
 using Gateway.Configuration;
-using Gateway.TransformProviders;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.OpenApi.Models;
@@ -79,8 +78,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddReverseProxy()
-    .LoadFromConfig(builder.Configuration.GetSection(cfg.ConfigSection))
-    .AddTransforms<DaprTransformProvider>();
+    .LoadFromConfig(builder.Configuration.GetSection(cfg.ConfigSection));
 
 builder.Services.AddControllers();
 
@@ -89,7 +87,6 @@ builder.Services.AddHeaderPropagation(options => {
 });
 builder.Services.AddHttpClient(Constants.HttpClientName)
     .AddHeaderPropagation();
-
 
 builder.Services.AddSwaggerGen(c =>
 {

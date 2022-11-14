@@ -28,20 +28,16 @@ builder.Logging.AddConsole(options =>
     options.FormatterName = ConsoleFormatterNames.Json;
 });
 
-if (string.IsNullOrWhiteSpace(cfg.ZipkinEndpoint))
-{
-    throw new ApplicationException("Zipkin Endpoint not provided");
-}
-
 //traces
 builder.Services.AddOpenTelemetryTracing(options =>
 {
     options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(ServiceName))
-        .AddAspNetCoreInstrumentation()
-        .AddZipkinExporter(config =>
-        {
-            config.Endpoint = new Uri(cfg.ZipkinEndpoint);
-        });
+        .AddAspNetCoreInstrumentation();
+    
+    if (!string.IsNullOrWhiteSpace(cfg.ZipkinEndpoint))
+    {
+        options.AddZipkinExporter(config => config.Endpoint = new Uri(cfg.ZipkinEndpoint));
+    }
 });
 
 // metrics

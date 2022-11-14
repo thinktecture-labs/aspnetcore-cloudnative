@@ -1,1 +1,0 @@
-Order Monitor Client has been installed in Namespace {{ .Release.Namespace }}
