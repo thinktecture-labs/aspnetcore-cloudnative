@@ -2,6 +2,12 @@
 {
     public class Product
     {
+
+        public Product()
+        {
+            
+        }
+        
         public Product(Guid id, string name, string description, IEnumerable<string> categories, double price)
         {
             Id = id;

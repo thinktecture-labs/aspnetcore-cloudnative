@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ProductsService.Data.Repositories;
+using Microsoft.EntityFrameworkCore;
+using ProductsService.Data;
 using ProductsService.Extensions;
 using ProductsService.Models;
 using Swashbuckle.AspNetCore.Annotations;
@@ -12,11 +13,11 @@ namespace ProductsService.Controllers;
 public class ProductsController : ControllerBase
 { 
     private readonly ILogger<ProductsController> _logger;
-    private readonly IProductsRepository _repository;
+    private readonly ProductsDbContext _dbContext;
     
-    public ProductsController(IProductsRepository repository, ILogger<ProductsController> logger)
+    public ProductsController(ProductsDbContext dbContext, ILogger<ProductsController> logger)
     {
-        _repository = repository;
+        _dbContext = dbContext;
         _logger = logger;
     }
 
@@ -27,7 +28,7 @@ public class ProductsController : ControllerBase
     [SwaggerResponse(500)]
     public async Task<IActionResult> GetAllProductsAsync()
     {
-        var res = await _repository.GetAllAsync();
+        var res = await _dbContext.Products.ToListAsync();
 
         return Ok(res.Select(p => p.ToListModel()));
     }
@@ -40,7 +41,7 @@ public class ProductsController : ControllerBase
     [SwaggerResponse(404, Description = "No product was found with the given id")]
     [SwaggerResponse(500)]
     public async Task<IActionResult> GetProductByIdAsync([FromRoute]Guid id){
-        var res = await _repository.GetByIdAsync(id);
+        var res = await _dbContext.Products.FirstOrDefaultAsync(p => p.Id == id);
 
         if (res == null) 
         {
