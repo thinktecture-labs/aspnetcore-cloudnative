@@ -29,6 +29,12 @@ var app = builder.Build();
 
 InitializeDb(app.Services);
 
+if (!String.IsNullOrEmpty(cfg.PathBase))
+{
+    app.UsePathBase(cfg.PathBase);
+    app.UseRouting();
+}
+
 app.UseSwagger();
 app.UseSwaggerUI();
 
