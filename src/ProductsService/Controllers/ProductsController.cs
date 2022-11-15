@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Polly;
 using ProductsService.Data;
 using ProductsService.Extensions;
 using ProductsService.Models;
@@ -37,6 +38,7 @@ public class ProductsController : ControllerBase
         foreach (var result in results)
         {
             result.LocalPrice = await _currencyService.Convert("USD", result.Price);
+            result.Details = Url.RouteUrl("GetProductById", new { result.Id }, Request.Scheme, Request.Host.ToString());
         }
         
         return Ok(results);

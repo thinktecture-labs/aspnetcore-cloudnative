@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Polly;
 using Polly.Extensions.Http;
@@ -59,8 +60,20 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwagger();
 builder.Services.AddDbContext<ProductsDbContext>(options => options.UseSqlite("Data Source=products.db"));
 
+if (!String.IsNullOrWhiteSpace(config.KnownNetwork))
+{
+    var networkParts = config.KnownNetwork.Split('/');
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.All;
+        options.KnownNetworks.Add(new IPNetwork(IPAddress.Parse(networkParts[0]), Int32.Parse(networkParts[1])));
+    });    
+}
+
 var app = builder.Build();
 InitializeDb(app.Services);
+
+app.UseForwardedHeaders();
 
 if (!String.IsNullOrEmpty(config.PathBase))
 {
