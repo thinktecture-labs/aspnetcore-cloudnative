@@ -21,6 +21,7 @@ public static class IServiceCollectionExtensions
                     opt.SetDbStatementForText = true;
                     opt.SetDbStatementForStoredProcedure = true;
                 })
+                .AddHttpClientInstrumentation()
                 .AddAspNetCoreInstrumentation();
     
             if (!string.IsNullOrWhiteSpace(cfg.ZipkinEndpoint))
