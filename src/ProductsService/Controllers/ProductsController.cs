@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ProductsService.Data;
 using ProductsService.Extensions;
 using ProductsService.Models;
+using ProductsService.Services;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace ProductsService.Controllers;
@@ -13,12 +14,14 @@ namespace ProductsService.Controllers;
 public class ProductsController : ControllerBase
 { 
     private readonly ILogger<ProductsController> _logger;
+    private readonly CurrencyService _currencyService;
     private readonly ProductsDbContext _dbContext;
     
-    public ProductsController(ProductsDbContext dbContext, ILogger<ProductsController> logger)
+    public ProductsController(ProductsDbContext dbContext, ILogger<ProductsController> logger, CurrencyService currencyService)
     {
         _dbContext = dbContext;
         _logger = logger;
+        _currencyService = currencyService;
     }
 
     [HttpGet]
@@ -28,9 +31,15 @@ public class ProductsController : ControllerBase
     [SwaggerResponse(500)]
     public async Task<IActionResult> GetAllProductsAsync()
     {
-        var res = await _dbContext.Products.ToListAsync();
+        var products = await _dbContext.Products.ToListAsync();
 
-        return Ok(res.Select(p => p.ToListModel()));
+        var results = products.Select(p => p.ToListModel()).ToList();
+        foreach (var result in results)
+        {
+            result.LocalPrice = await _currencyService.Convert("USD", result.Price);
+        }
+        
+        return Ok(results);
     }
 
     [HttpGet]

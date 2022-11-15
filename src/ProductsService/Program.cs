@@ -1,7 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Net;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
+using Polly;
+using Polly.Extensions.Http;
+using Polly.Timeout;
 using ProductsService.Configuration;
 using ProductsService.Data;
 using ProductsService.Data.Entities;
+using ProductsService.Json;
+using ProductsService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,9 +25,36 @@ cfgSection.Bind(config);
 
 builder.Logging.ConfigureLogging();
 
+builder.Services.AddHttpClient<CurrencyService>(client =>
+{
+    client.BaseAddress = new Uri(config.ExchangeRateUrl);
+});
+
+#region Stuff
+    // .AddPolicyHandler(Policy
+    //     .HandleResult<HttpResponseMessage>(m => !m.IsSuccessStatusCode)
+    //     .Or<HttpRequestException>()
+    //     .Or<TimeoutRejectedException>()
+    //     .FallbackAsync(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+    //     {
+    //         Content = new ByteArrayContent(File.ReadAllBytes("Data/fallbackExchangeRates.json"))
+    //     }))
+    // ).AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(2)));
+#endregion
+
+builder.Services.Configure<JsonSerializerOptions>(options =>
+{
+    options.PropertyNameCaseInsensitive = true;
+    options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.NumberHandling = JsonNumberHandling.AllowReadingFromString;
+    options.Converters.Add(new DateOnlyConverter());
+});
+
 builder.Services.AddOpenTelemetry(config);
 builder.Services.AddHealthChecks();
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new DateOnlyConverter()));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwagger();
 builder.Services.AddDbContext<ProductsDbContext>(options => options.UseSqlite("Data Source=products.db"));
