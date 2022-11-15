@@ -64,11 +64,14 @@ services:
     container_name: products
     environment:
       ProductsService__ZipkinEndpoint: http://zipkin:9411/api/v2/spans
-      Logging__LogLevel__Microsoft.AspNetCore: Information
+      ConfigurationPath: /run/secrets/
+      DOTNET_USE_POLLING_FILE_WATCHER: true
     networks:
       - cloud-native
     depends_on:
       - zipkin
+    secrets:
+      - Logging__LogLevel__Microsoft.AspNetCore
     logging:
       driver: loki
       options:
@@ -82,3 +85,6 @@ networks:
       config:
         - subnet: 10.5.0.0/16
           gateway: 10.5.0.1
+secrets:
+  Logging__LogLevel__Microsoft.AspNetCore:
+    file: ./docker-compose-configs/productService/Logging__LogLevel__Microsoft.AspNetCore

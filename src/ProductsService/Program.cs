@@ -5,33 +5,31 @@ using ProductsService.Data.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var cfg = new ProductsServiceConfiguration();
-var cfgSection = builder.Configuration.GetSection(ProductsServiceConfiguration.SectionName);
-
-if (cfgSection == null || !cfgSection.Exists())
+var configurationPath = builder.Configuration["ConfigurationPath"];
+if (!String.IsNullOrWhiteSpace(configurationPath))
 {
-    throw new ApplicationException(
-        $"Could not find service config. Please provide a '{ProductsServiceConfiguration.SectionName}' config section");
+    builder.Configuration.AddKeyPerFile(configurationPath, true, true);
 }
-cfgSection.Bind(cfg);
+
+var config = new ProductsServiceConfiguration();
+var cfgSection = builder.Configuration.GetSection(ProductsServiceConfiguration.SectionName);
+cfgSection.Bind(config);
 
 builder.Logging.ConfigureLogging();
 
-builder.Services.AddOpenTelemetry(cfg);
+builder.Services.AddOpenTelemetry(config);
 builder.Services.AddHealthChecks();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwagger();
 builder.Services.AddDbContext<ProductsDbContext>(options => options.UseSqlite("Data Source=products.db"));
 
-
 var app = builder.Build();
-
 InitializeDb(app.Services);
 
-if (!String.IsNullOrEmpty(cfg.PathBase))
+if (!String.IsNullOrEmpty(config.PathBase))
 {
-    app.UsePathBase(cfg.PathBase);
+    app.UsePathBase(config.PathBase);
     app.UseRouting();
 }
 
