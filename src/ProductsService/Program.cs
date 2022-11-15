@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Polly;
@@ -9,6 +10,7 @@ using Polly.Timeout;
 using ProductsService.Configuration;
 using ProductsService.Data;
 using ProductsService.Data.Entities;
+using ProductsService.HealthChecks;
 using ProductsService.Json;
 using ProductsService.Services;
 
@@ -52,7 +54,10 @@ builder.Services.Configure<JsonSerializerOptions>(options =>
 });
 
 builder.Services.AddOpenTelemetry(config);
-builder.Services.AddHealthChecks();
+
+builder.Services.AddHealthChecks()
+    .AddCheck<RandomHealthCheck>("RandomChecks", tags: new[] { "CustomHealthChecks" });
+
 builder.Services
     .AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new DateOnlyConverter()));
@@ -91,6 +96,10 @@ app.UseOpenTelemetryPrometheusScrapingEndpoint();
 
 app.MapHealthChecks("/healthz/readiness");
 app.MapHealthChecks("/healthz/liveness");
+app.MapHealthChecks("/healthz/custom", new HealthCheckOptions
+{
+    Predicate = healthCheck => healthCheck.Tags.Contains("CustomHealthChecks")
+});
 
 app.Run();
 
