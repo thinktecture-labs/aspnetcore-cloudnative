@@ -1,0 +1,7 @@
+### Products
+
+GET http://myapi.local:5000/products
+
+### Custom Product Healtchecks
+
+GET http://myapi.local:5001/healthz/custom
