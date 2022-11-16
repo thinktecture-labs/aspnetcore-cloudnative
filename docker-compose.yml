@@ -67,6 +67,7 @@ services:
       # ProductsService__KnownNetwork: 10.5.0.0/16
       ConfigurationPath: /run/secrets/
       DOTNET_USE_POLLING_FILE_WATCHER: true
+      Logging__Console__FormatterName: json
     networks:
       - cloud-native
     depends_on:

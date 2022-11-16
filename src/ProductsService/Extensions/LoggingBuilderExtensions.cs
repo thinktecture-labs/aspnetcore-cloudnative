@@ -7,5 +7,5 @@ public static class LoggingBuilderExtensions
     public static ILoggingBuilder ConfigureLogging(this ILoggingBuilder loggingBuilder) =>
         loggingBuilder
             .ClearProviders()
-            .AddConsole(options => options.FormatterName = ConsoleFormatterNames.Json);
+            .AddConsole();
 }
