@@ -64,7 +64,8 @@ services:
     container_name: products
     environment:
       ProductsService__ZipkinEndpoint: http://zipkin:9411/api/v2/spans
-      # ProductsService__KnownNetwork: 10.5.0.0/16
+      #ProductsService__KnownNetwork: 10.5.0.0/16
+      #ProductsService__PathBase: /api
       ConfigurationPath: /run/secrets/
       DOTNET_USE_POLLING_FILE_WATCHER: true
       Logging__Console__FormatterName: json
