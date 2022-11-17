@@ -1,7 +1,7 @@
 .PHONY: start stop quickstart logs cleanup
 
 start:
-	docker-compose up --build -d
+	docker-compose up --build
 
 quickstart:
 	docker-compose up -d
