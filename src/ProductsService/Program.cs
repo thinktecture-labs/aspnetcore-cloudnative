@@ -27,6 +27,9 @@ var cfgSection = builder.Configuration.GetSection(ProductsServiceConfiguration.S
 cfgSection.Bind(config);
 
 builder.Logging.ConfigureLogging();
+builder.Services.AddOpenTelemetry(config);
+builder.Services.AddHealthChecks()
+    .AddCheck<RandomHealthCheck>("RandomChecks", tags: new[] { "CustomHealthChecks" });
 
 builder.Services.AddHttpClient<CurrencyService>(client =>
 {
@@ -52,11 +55,6 @@ builder.Services.Configure<JsonSerializerOptions>(options =>
     options.NumberHandling = JsonNumberHandling.AllowReadingFromString;
     options.Converters.Add(new DateOnlyConverter());
 });
-
-builder.Services.AddOpenTelemetry(config);
-
-builder.Services.AddHealthChecks()
-    .AddCheck<RandomHealthCheck>("RandomChecks", tags: new[] { "CustomHealthChecks" });
 
 builder.Services
     .AddControllers()
