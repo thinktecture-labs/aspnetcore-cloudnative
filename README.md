@@ -4,10 +4,6 @@
 
 ### URLs and demo credentials
 
-* Frontend
-  * [http://localhost:5005](http://localhost:5005)
-* Authentication
-  * [http://localhost:5009](http://localhost:5009)
 * Gateway
   * Root: [http://localhost:5000](http://localhost:5000)
   * Swagger (Products Service): [http://localhost:5000/products/swagger/](http://localhost:5000/products/swagger/)
